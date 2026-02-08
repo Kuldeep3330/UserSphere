@@ -5,11 +5,12 @@ import multer from "multer";
 import path from "path";
 import mongoose from 'mongoose';
 import { User } from './models/user.js';
-
+import cors from "cors"
 
 const app = express()
 
 app.use(express.json())
+app.use(cors());
 
 //mongoDB connect
 mongoose.connect("mongodb://127.0.0.1:27017/mini_project")
@@ -18,7 +19,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/mini_project")
 
 // const users = []
 
-app.post('/register', async (req, res) => {
+app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password)
@@ -34,7 +35,7 @@ app.post('/register', async (req, res) => {
     res.status(200).json({ message: "user registered" })
 })
 
-app.post('/login', async (req, res) => {
+app.post('/api/login', async (req, res) => {
     const { username, password } = req.body
     const user = await User.findOne({username})
     if (!user) return res.status(401).json({ message: "User not found" })
@@ -43,7 +44,7 @@ app.post('/login', async (req, res) => {
     if (!passwordMatch) return res.status(401).json({ message: "Wrong password" });
 
     //create token
-    const token = jwt.sign({ id: user.id, username }, "merakhudkasecretkey", { expiresIn: "1h" })
+    const token = jwt.sign({ id: user._id, username }, "merakhudkasecretkey", { expiresIn: "1h" })
 
     return res.json({ token })
 })
@@ -64,7 +65,7 @@ const authenticateJWT = (req, res, next) => {
 
 //protected route
 
-app.get('/', authenticateJWT,(req, res) => {
+app.get('/api', authenticateJWT,(req, res) => {
     res.status(200).json({ message: `Welcome ${req.user.username}` })
 })
 
@@ -80,7 +81,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage })
 
-app.post('/upload', authenticateJWT, upload.single('image'), async (req, res)=>{
+app.post('/api/upload', authenticateJWT, upload.single('image'), async (req, res)=>{
     await User.findByIdAndUpdate(req.user.id, {
       avatar: req.file.filename,
     });
@@ -90,7 +91,7 @@ app.post('/upload', authenticateJWT, upload.single('image'), async (req, res)=>{
 )
 
 //pagination
-app.get("/users", authenticateJWT, async(req, res) => {
+app.get("/api/users", authenticateJWT, async(req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 5;
 
